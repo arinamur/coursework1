@@ -24,6 +24,9 @@ COLUMN_RENAMES = {
     "Техническая ссылка": "is_technical",
 }
 
+REVERSE_RENAMES = {v: k for k, v in COLUMN_RENAMES.items()}
+REVERSE_RENAMES["banner_link"] = "Баннерная ссылка"
+
 
 class BannerLinksMediaSkill(AbstractSkill):
     name = "Баннерные ссылки для соцсетей"
@@ -49,6 +52,7 @@ class BannerLinksMediaSkill(AbstractSkill):
 
         if r.status_code == 200:
             df = pd.DataFrame(r.json()["file"])
+            df = df.rename(columns=REVERSE_RENAMES)
             fname = os.path.join(os.sep, "tmp", "banner_links.csv")
             df.to_csv(fname)
             return FileResult(file_path=fname, custom_name="banner_links.csv", is_tmp_file=True, caption="Готово!")
