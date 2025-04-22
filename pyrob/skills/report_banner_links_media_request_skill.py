@@ -20,9 +20,9 @@ logger = structlog.getLogger(__name__)
 
 
 class ReportBannerLinksMediaRequestSkill(AbstractSkill):
-    name = "Запустить построение отчёта по банненрым ссылкам"
-    description = "Запускаю построение отчёта по банненрым ссылкам"
-    matchers_info = [RobPrefixMatcher("запустить построение отчёта по банненрым ссылкам")]
+    name = "Запустить построение отчёта по баннерным ссылкам"
+    description = "Запускаю построение отчёта по баннерным ссылкам"
+    matchers_info = [RobPrefixMatcher("запустить построение отчёта по баннерным ссылкам")]
     permission = role_oneof_permission("pr")
     parameters_info = [
         date_parameter(

@@ -50,28 +50,55 @@ class BannerLinksMediaSkill(AbstractSkill):
             timeout=60,
         )
 
+        try:
+            r_json = r.json()
+        except Exception:
+            raise SkillExecutionError(
+                pretty_reason="Не получилось сгенерировать баннерные ссылки. Попробуй позднее, пожалуйста.",
+                tech_reason="Invalid JSON response from banner links service.",
+            )
+
+        error_code = r_json.get("error_code")
+        client_msg = r_json.get("error")
+
         if r.status_code == 200:
-            df = pd.DataFrame(r.json()["file"])
+            df = pd.DataFrame(r_json["file"])
             df = df.rename(columns=REVERSE_RENAMES)
             fname = os.path.join(os.sep, "tmp", "banner_links.csv")
             df.to_csv(fname)
             return FileResult(file_path=fname, custom_name="banner_links.csv", is_tmp_file=True, caption="Готово!")
-        elif r.status_code == 400:
+        elif error_code == "UNKNOWN_CHANNEL":
             raise SkillExecutionError(
-                pretty_reason="Не могу сгенерировать ссылки. Колонки в таблице не совпадают с теми, которые я знаю.\n"
-                "Исправь их и попробуй еще раз)",
-                tech_reason=f"Banner links request error. " f"Reason={r.json()['error']}",
+                pretty_reason="Не могу сгенерировать ссылки. Каналы в таблице не совпадают с теми, которые я знаю.\n"
+                "Исправь их и попробуй еще раз!",
+                tech_reason=f"Banner links request error. Reason={client_msg}",
             )
-        elif r.status_code == 404:
+        elif error_code == "UNKNOWN_PARTNER":
             raise SkillExecutionError(
-                pretty_reason="Не могу сгенерировать ссылки. Типы партнеров в таблице некорректны.\n"
-                "Исправь их и попробуй еще раз)",
-                tech_reason=f"Banner links request error. " f"Reason={r.json()['error']}",
+                pretty_reason="Не могу сгенерировать ссылки. Партнёры в таблице не совпадают с теми, которые я знаю.\n"
+                "Исправь их и попробуй еще раз!",
+                tech_reason=f"Banner links request error. Reason={client_msg}",
+            )
+        elif error_code == "UNKNOWN_LINK_TYPE":
+            raise SkillExecutionError(
+                pretty_reason="Не могу сгенерировать ссылки. Типы публикации в таблице не совпадают с теми, "
+                "которые я знаю.\nИсправь их и попробуй еще раз!",
+                tech_reason=f"Banner links request error. Reason={client_msg}",
+            )
+        elif error_code == "CANT_PARSE_FILE":
+            raise SkillExecutionError(
+                pretty_reason="Не удалось обработать файл. Убедись, что он в правильном формате и попробуй еще раз!",
+                tech_reason=f"Banner links request error. Reason={client_msg}",
+            )
+        elif error_code == "BANNER_GENERATION":
+            raise SkillExecutionError(
+                pretty_reason="Не получилось сгенерировать баннерные ссылки. Попробуй позже.",
+                tech_reason=f"Banner links request error. Reason={client_msg}",
             )
         else:
             raise SkillExecutionError(
-                pretty_reason="Не получилось сгенерировать баннерные ссылки. Попробуй позднее, пожалуйста.",
-                tech_reason=f"Banner links request error. " f"Reason={r.json()['error']}",
+                pretty_reason="Не получилось сгенерировать баннерные ссылки. Попробуй позже.",
+                tech_reason=f"Unexpected error. Status={r.status_code}, Reason={client_msg}",
             )
 
     @classmethod

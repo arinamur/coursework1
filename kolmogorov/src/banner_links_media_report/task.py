@@ -9,7 +9,7 @@ from lib.queries.repo import AnalyticsRepo
 from lib.reports.banner_links_media_report.parsing import table_parse
 from lib.reports.banner_links_media_report.repo import ReportBannerLinksMediaRepo
 from lib.reports.s3_file_storage import MinioBucketResultStorage
-from lib.time import TimeRange, parse_time
+from lib.time import TimeRange, now_time_msk, parse_time
 from src.data_source import KolmogorovDB
 from src.reports.api.models import BannerLinksMediaParameters, Parameters
 from src.reports.base.register import TaskRegister
@@ -48,8 +48,12 @@ class ReportBannerLinksMedia(Task):
 
         if not report_path:
             return None
-
-        return None
+        if parse_time(parameters.to_date).date() >= now_time_msk().date():  # type:ignore[union-attr]
+            return None
+        return ParametersInfo(
+            error=None,
+            result_url=report_path,
+        )
 
     @staticmethod
     def _get_report_path(
@@ -90,8 +94,6 @@ class ReportBannerLinksMedia(Task):
 
             table = pd.DataFrame(rows, columns=cols)
             table = table_parse(table)
-            final_str = pd.DataFrame(rows1, columns=cols1)
-            table = pd.concat([table, final_str], ignore_index=True, axis=0)
             table["fact_publication_date"] = table["fact_publication_date"].apply(
                 lambda x: parse_time(x).date().strftime("%d.%m.%Y") if pd.notna(x) else ""  # type: ignore[union-attr]
             )
@@ -110,6 +112,8 @@ class ReportBannerLinksMedia(Task):
                     "active": "Активные",
                 }
             )
+            final_str = pd.DataFrame(rows1, columns=cols1)
+            table = pd.concat([table, final_str], ignore_index=True, axis=0)
             table["Переходы -> Регистрации"] = round((table["Регистрации"] / table["Переходы"] * 100).fillna(0))
             table["Регистрации -> Активные"] = round((table["Активные"] / table["Регистрации"] * 100).fillna(0))
             try:
@@ -119,7 +123,7 @@ class ReportBannerLinksMedia(Task):
                     bucket_name=bucket_name,
                     result_uuid=ticket,
                     result=report_file,
-                    report_path="rob-analytics/reports/course_difficulty",
+                    report_path="rob-analytics/reports/banner_links_media",
                 )
                 request_result = f"{bucket_path}/{result_path}"
                 return TaskResult(request_result=request_result, error_details=None)

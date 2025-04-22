@@ -21,25 +21,25 @@ class AnalyticsBannerLinks:
         is_deleted: bool,
     ) -> None:
         with self._db_session.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                insert into analytics.banner_links_media(
-                    banner_id, banner_link, title, publication_type, is_outer, channel,
-                    link, is_technical, partner, is_deleted
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    insert into analytics.banner_links_media(
+                        banner_id, banner_link, title, publication_type, is_outer, channel,
+                        link, is_technical, partner, is_deleted
+                    )
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        banner_id,
+                        banner_link,
+                        title,
+                        publication_type,
+                        is_outer,
+                        channel,
+                        link,
+                        is_technical,
+                        partner,
+                        is_deleted,
+                    ),
                 )
-                values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (
-                    banner_id,
-                    banner_link,
-                    title,
-                    publication_type,
-                    is_outer,
-                    channel,
-                    link,
-                    is_technical,
-                    partner,
-                    is_deleted,
-                ),
-            )
